@@ -1,0 +1,32 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "vsscunet"
+version = "1.0.0"
+description = "SCUNet function for VapourSynth"
+readme = "README.md"
+requires-python = ">=3.10"
+license = {file = "LICENSE"}
+authors = [{name = "HolyWu", email = "holywu@gmail.com"}]
+keywords = ["SCUNet", "VapourSynth"]
+classifiers = [
+  "License :: OSI Approved :: Apache Software License",
+  "Operating System :: OS Independent",
+  "Programming Language :: Python :: 3.10",
+  "Topic :: Multimedia :: Video"
+]
+dependencies = [
+  "einops",
+  "numpy",
+  "requests",
+  "timm",
+  "torch>=1.13.0",
+  "tqdm",
+  "VapourSynth>=55"
+]
+
+[project.urls]
+"Homepage" = "https://github.com/HolyWu/vs-scunet"
+"Bug Tracker" = "https://github.com/HolyWu/vs-scunet/issues"
