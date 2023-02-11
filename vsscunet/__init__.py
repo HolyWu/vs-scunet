@@ -13,7 +13,7 @@ from functorch.compile import memory_efficient_fusion
 
 from .network_scunet import SCUNet
 
-__version__ = '1.0.0'
+__version__ = "1.0.0"
 
 package_dir = os.path.dirname(os.path.realpath(__file__))
 
@@ -44,85 +44,82 @@ def scunet(
 ) -> vs.VideoNode:
     """Practical Blind Denoising via Swin-Conv-UNet and Data Synthesis
 
-    :param clip:                    Clip to process. Only RGBH and RGBS formats are supported.
-                                    RGBH performs inference in FP16 mode while RGBS performs inference in FP32 mode.
-    :param device_index:            Device ordinal of the GPU.
-    :param num_streams:             Number of CUDA streams to enqueue the kernels.
-    :param nvfuser:                 Enable fusion through nvFuser. (experimental)
-    :param cuda_graphs:             Use CUDA Graphs to remove CPU overhead associated with launching CUDA kernels
-                                    sequentially.
-    :param model:                   Model to use.
-                                    0 = scunet_color_15
-                                    1 = scunet_color_25
-                                    2 = scunet_color_50
-                                    3 = scunet_color_real_psnr
-                                    4 = scunet_color_real_gan
-    :param tile_w:                  Tile width. As too large images result in the out of GPU memory issue, so this tile
-                                    option will first crop input images into tiles, and then process each of them.
-                                    Finally, they will be merged into one image. 0 denotes for do not use tile.
-    :param tile_h:                  Tile height.
-    :param tile_pad:                Pad size for each tile, to remove border artifacts.
+    :param clip:            Clip to process. Only RGBH and RGBS formats are supported.
+                            RGBH performs inference in FP16 mode while RGBS performs inference in FP32 mode.
+    :param device_index:    Device ordinal of the GPU.
+    :param num_streams:     Number of CUDA streams to enqueue the kernels.
+    :param nvfuser:         Enable fusion through nvFuser. (experimental)
+    :param cuda_graphs:     Use CUDA Graphs to remove CPU overhead associated with launching CUDA kernels sequentially.
+    :param model:           Model to use.
+                            0 = scunet_color_15
+                            1 = scunet_color_25
+                            2 = scunet_color_50
+                            3 = scunet_color_real_psnr
+                            4 = scunet_color_real_gan
+    :param tile_w:          Tile width. As too large images result in the out of GPU memory issue, so this tile option
+                            will first crop input images into tiles, and then process each of them. Finally, they will
+                            be merged into one image. 0 denotes for do not use tile.
+    :param tile_h:          Tile height.
+    :param tile_pad:        Pad size for each tile, to remove border artifacts.
     """
     if not isinstance(clip, vs.VideoNode):
-        raise vs.Error('scunet: this is not a clip')
+        raise vs.Error("scunet: this is not a clip")
 
     if clip.format.id not in [vs.RGBH, vs.RGBS]:
-        raise vs.Error('scunet: only RGBH and RGBS formats are supported')
+        raise vs.Error("scunet: only RGBH and RGBS formats are supported")
 
     if not torch.cuda.is_available():
-        raise vs.Error('scunet: CUDA is not available')
+        raise vs.Error("scunet: CUDA is not available")
 
     if num_streams < 1:
-        raise vs.Error('scunet: num_streams must be at least 1')
+        raise vs.Error("scunet: num_streams must be at least 1")
 
     if num_streams > vs.core.num_threads:
-        raise vs.Error('scunet: setting num_streams greater than `core.num_threads` is useless')
+        raise vs.Error("scunet: setting num_streams greater than `core.num_threads` is useless")
 
     if model not in range(5):
-        raise vs.Error('scunet: model must be 0, 1, 2, 3, or 4')
+        raise vs.Error("scunet: model must be 0, 1, 2, 3, or 4")
 
-    if os.path.getsize(os.path.join(package_dir, 'scunet_color_15.pth')) == 0:
+    if os.path.getsize(os.path.join(package_dir, "scunet_color_15.pth")) == 0:
         raise vs.Error("scunet: model files have not been downloaded. run 'python -m vsscunet' first")
 
     torch.backends.cuda.matmul.allow_tf32 = True
 
     fp16 = clip.format.bits_per_sample == 16
 
-    device = torch.device('cuda', device_index)
+    device = torch.device("cuda", device_index)
 
     stream = [torch.cuda.Stream(device=device) for _ in range(num_streams)]
     stream_lock = [Lock() for _ in range(num_streams)]
 
     match model:
         case 0:
-            model_name = 'scunet_color_15.pth'
+            model_name = "scunet_color_15.pth"
         case 1:
-            model_name = 'scunet_color_25.pth'
+            model_name = "scunet_color_25.pth"
         case 2:
-            model_name = 'scunet_color_50.pth'
+            model_name = "scunet_color_50.pth"
         case 3:
-            model_name = 'scunet_color_real_psnr.pth'
+            model_name = "scunet_color_real_psnr.pth"
         case 4:
-            model_name = 'scunet_color_real_gan.pth'
+            model_name = "scunet_color_real_gan.pth"
 
     model_path = os.path.join(package_dir, model_name)
 
     module = SCUNet(config=[4, 4, 4, 4, 4, 4, 4])
-    module.load_state_dict(torch.load(model_path, map_location='cpu'), strict=False)
+    module.load_state_dict(torch.load(model_path, map_location="cpu"), strict=False)
     module.eval().to(device, memory_format=torch.channels_last)
 
     if fp16:
         module.half()
         torch.set_default_tensor_type(torch.HalfTensor)
 
-    modulo = 64
-
     if tile_w > 0 and tile_h > 0:
-        pad_w = math.ceil(min(tile_w + 2 * tile_pad, clip.width) / modulo) * modulo
-        pad_h = math.ceil(min(tile_h + 2 * tile_pad, clip.height) / modulo) * modulo
+        pad_w = math.ceil(min(tile_w + 2 * tile_pad, clip.width) / 64) * 64
+        pad_h = math.ceil(min(tile_h + 2 * tile_pad, clip.height) / 64) * 64
     else:
-        pad_w = math.ceil(clip.width / modulo) * modulo
-        pad_h = math.ceil(clip.height / modulo) * modulo
+        pad_w = math.ceil(clip.width / 64) * 64
+        pad_h = math.ceil(clip.height / 64) * 64
 
     if nvfuser:
         module = memory_efficient_fusion(module)
@@ -133,7 +130,7 @@ def scunet(
         static_output: list[torch.Tensor] = []
 
         for i in range(num_streams):
-            static_input.append(torch.empty(1, 3, pad_h, pad_w, device=device, memory_format=torch.channels_last))
+            static_input.append(torch.zeros((1, 3, pad_h, pad_w), device=device).to(memory_format=torch.channels_last))
 
             torch.cuda.synchronize(device=device)
             stream[i].wait_stream(torch.cuda.current_stream(device=device))
@@ -167,7 +164,7 @@ def scunet(
                 output = tile_process(img, 1, tile_w, tile_h, tile_pad, pad_w, pad_h, backend, local_index)
             else:
                 h, w = img.shape[2:]
-                img = F.pad(img, (0, pad_w - w, 0, pad_h - h), 'reflect')
+                img = F.pad(img, (0, pad_w - w, 0, pad_h - h), "reflect")
 
                 if cuda_graphs:
                     static_input[local_index].copy_(img)
@@ -241,7 +238,7 @@ def tile_process(
             input_tile = img[:, :, input_start_y_pad:input_end_y_pad, input_start_x_pad:input_end_x_pad]
 
             h, w = input_tile.shape[2:]
-            mode = 'reflect' if pad_w - w < w and pad_h - h < h else 'replicate'
+            mode = "reflect" if pad_w - w < w and pad_h - h < h else "replicate"
             input_tile = F.pad(input_tile, (0, pad_w - w, 0, pad_h - h), mode)
 
             # process tile
