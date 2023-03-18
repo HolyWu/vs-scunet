@@ -83,7 +83,7 @@ def scunet(
     if os.path.getsize(os.path.join(package_dir, "scunet_color_15.pth")) == 0:
         raise vs.Error("scunet: model files have not been downloaded. run 'python -m vsscunet' first")
 
-    torch.backends.cuda.matmul.allow_tf32 = True
+    torch.set_float32_matmul_precision("high")
 
     fp16 = clip.format.bits_per_sample == 16
 
@@ -107,7 +107,7 @@ def scunet(
     model_path = os.path.join(package_dir, model_name)
 
     module = SCUNet(config=[4, 4, 4, 4, 4, 4, 4])
-    module.load_state_dict(torch.load(model_path, map_location="cpu"), strict=False)
+    module.load_state_dict(torch.load(model_path, map_location="cpu"))
     module.eval().to(device, memory_format=torch.channels_last)
 
     if fp16:

@@ -31,7 +31,7 @@ class WMSA(nn.Module):
 
         cord = torch.tensor([[i, j] for i in range(window_size) for j in range(window_size)])
         relation = cord[:, None, :] - cord[None, :, :] + window_size -1
-        self.register_buffer('relation', relation)
+        self.register_buffer('relation', relation, persistent=False)
 
     def generate_mask(self, h, w, p, shift):
         """ generating the mask of SW-MSA
