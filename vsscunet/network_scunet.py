@@ -22,7 +22,7 @@ class WMSA(nn.Module):
 
         # TODO recover
         # self.relative_position_params = nn.Parameter(torch.zeros(self.n_heads, 2 * window_size - 1, 2 * window_size -1))
-        self.relative_position_params = nn.Parameter(torch.zeros((2 * window_size - 1)*(2 * window_size -1), self.n_heads, dtype=torch.float))
+        self.relative_position_params = nn.Parameter(torch.zeros((2 * window_size - 1)*(2 * window_size -1), self.n_heads))
 
         self.linear = nn.Linear(self.input_dim, self.output_dim)
 

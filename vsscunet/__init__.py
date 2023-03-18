@@ -86,6 +86,7 @@ def scunet(
     torch.set_float32_matmul_precision("high")
 
     fp16 = clip.format.bits_per_sample == 16
+    dtype = torch.half if fp16 else torch.float
 
     device = torch.device("cuda", device_index)
 
@@ -109,10 +110,8 @@ def scunet(
     module = SCUNet(config=[4, 4, 4, 4, 4, 4, 4])
     module.load_state_dict(torch.load(model_path, map_location="cpu"))
     module.eval().to(device, memory_format=torch.channels_last)
-
     if fp16:
         module.half()
-        torch.set_default_tensor_type(torch.HalfTensor)
 
     if tile_w > 0 and tile_h > 0:
         pad_w = math.ceil(min(tile_w + 2 * tile_pad, clip.width) / 64) * 64
@@ -130,7 +129,9 @@ def scunet(
         static_output: list[torch.Tensor] = []
 
         for i in range(num_streams):
-            static_input.append(torch.zeros((1, 3, pad_h, pad_w), device=device).to(memory_format=torch.channels_last))
+            static_input.append(
+                torch.zeros((1, 3, pad_h, pad_w), dtype=dtype, device=device).to(memory_format=torch.channels_last)
+            )
 
             torch.cuda.synchronize(device=device)
             stream[i].wait_stream(torch.cuda.current_stream(device=device))
