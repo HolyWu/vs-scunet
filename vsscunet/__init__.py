@@ -16,7 +16,7 @@ import vapoursynth as vs
 from .__main__ import download_model
 from .network_scunet import SCUNet
 
-__version__ = "1.0.0"
+__version__ = "2.0.0"
 
 os.environ["CI_BUILD"] = "1"
 os.environ["CUDA_MODULE_LOADING"] = "LAZY"
