@@ -8,25 +8,33 @@ version = "1.0.0"
 description = "SCUNet function for VapourSynth"
 readme = "README.md"
 requires-python = ">=3.10"
-license = {file = "LICENSE"}
-authors = [{name = "HolyWu", email = "holywu@gmail.com"}]
-keywords = ["SCUNet", "VapourSynth"]
+license-files = { paths = ["LICENSE"] }
+authors = [
+  { name = "HolyWu", email = "holywu@gmail.com" },
+]
+keywords = [
+  "PyTorch",
+  "SCUNet",
+  "TensorRT",
+  "VapourSynth",
+]
 classifiers = [
+  "Environment :: GPU :: NVIDIA CUDA",
   "License :: OSI Approved :: Apache Software License",
   "Operating System :: OS Independent",
-  "Programming Language :: Python :: 3.10",
-  "Topic :: Multimedia :: Video"
+  "Programming Language :: Python :: 3",
+  "Topic :: Multimedia :: Video",
 ]
 dependencies = [
   "einops",
   "numpy",
   "requests",
   "timm",
-  "torch>=1.13.0",
+  "torch>=2.6.0.dev",
   "tqdm",
-  "VapourSynth>=55"
+  "VapourSynth>=66"
 ]
 
 [project.urls]
-"Homepage" = "https://github.com/HolyWu/vs-scunet"
-"Bug Tracker" = "https://github.com/HolyWu/vs-scunet/issues"
+Homepage = "https://github.com/HolyWu/vs-scunet"
+Issues = "https://github.com/HolyWu/vs-scunet/issues"
